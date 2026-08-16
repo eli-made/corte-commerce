@@ -17,6 +17,8 @@ export type SquarespaceClient = {
   get<T>(pathname: string, query?: Record<string, string>): Promise<T>;
   /** Like `get`, but resolves to `null` on 404 instead of throwing. */
   getOrNull<T>(pathname: string, query?: Record<string, string>): Promise<T | null>;
+  /** JSON POST. Used by the write half of the agent backend. */
+  post<T>(pathname: string, body: unknown): Promise<T>;
 };
 
 async function readErrorMessage(response: Response): Promise<string> {
@@ -49,19 +51,28 @@ export function createSquarespaceClient({
 
   const request = async (
     pathname: string,
-    query?: Record<string, string>,
+    options: {
+      query?: Record<string, string>;
+      method?: "GET" | "POST";
+      body?: unknown;
+    } = {},
   ): Promise<Response> => {
+    const { query, method = "GET", body } = options;
     const url = new URL(pathname, API_ORIGIN);
     for (const [key, value] of Object.entries(query ?? {})) {
       url.searchParams.set(key, value);
     }
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${apiKey}`,
+      "User-Agent": "corte-commerce-squarespace",
+      Accept: "application/json",
+    };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+
     return doFetch(url.toString(), {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "User-Agent": "corte-commerce-squarespace",
-        Accept: "application/json",
-      },
+      method,
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
   };
 
@@ -77,16 +88,21 @@ export function createSquarespaceClient({
     }
   };
 
+  const apiError = async (
+    response: Response,
+    method: string,
+    pathname: string,
+  ): Promise<CommerceApiError> =>
+    new CommerceApiError(
+      PROVIDER_ID,
+      response.status,
+      `${method} ${pathname} failed: ${await readErrorMessage(response)}`,
+    );
+
   return {
     async get<T>(pathname: string, query?: Record<string, string>): Promise<T> {
-      const response = await request(pathname, query);
-      if (!response.ok) {
-        throw new CommerceApiError(
-          PROVIDER_ID,
-          response.status,
-          `GET ${pathname} failed: ${await readErrorMessage(response)}`,
-        );
-      }
+      const response = await request(pathname, { query });
+      if (!response.ok) throw await apiError(response, "GET", pathname);
       return parse<T>(response, pathname);
     },
 
@@ -94,15 +110,17 @@ export function createSquarespaceClient({
       pathname: string,
       query?: Record<string, string>,
     ): Promise<T | null> {
-      const response = await request(pathname, query);
+      const response = await request(pathname, { query });
       if (response.status === 404) return null;
-      if (!response.ok) {
-        throw new CommerceApiError(
-          PROVIDER_ID,
-          response.status,
-          `GET ${pathname} failed: ${await readErrorMessage(response)}`,
-        );
-      }
+      if (!response.ok) throw await apiError(response, "GET", pathname);
+      return parse<T>(response, pathname);
+    },
+
+    async post<T>(pathname: string, body: unknown): Promise<T> {
+      const response = await request(pathname, { method: "POST", body });
+      if (!response.ok) throw await apiError(response, "POST", pathname);
+      // 204 has no body; callers that expect one re-read the resource.
+      if (response.status === 204) return undefined as T;
       return parse<T>(response, pathname);
     },
   };
