@@ -1,25 +1,19 @@
 {
-  "name": "@corte-so/commerce-squarespace",
+  "name": "@corte-so/commerce-agent-tools",
   "version": "0.1.0",
-  "description": "Squarespace Commerce API provider (catalog-only) for the @corte-so/commerce-core contract.",
+  "description": "Provider-neutral agent tool suite for commerce: zod-authored specs published as JSON Schema, generated per provider backend.",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/eli-made/corte-commerce.git",
-    "directory": "packages/commerce-squarespace"
+    "directory": "packages/commerce-agent-tools"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./agent": {
-      "types": "./dist/agent/index.d.ts",
-      "default": "./dist/agent/index.js"
     }
   },
   "scripts": {
@@ -28,7 +22,7 @@
   },
   "dependencies": {
     "@corte-so/commerce-core": "^0.1.0",
-    "@corte-so/commerce-agent-tools": "^0.1.0"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
