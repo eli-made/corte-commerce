@@ -91,7 +91,7 @@ export function createCommerceAgentTools(
       description:
         "List products from the connected store, optionally filtered by a free-text query and sorted. Returns product summaries (id, handle, title, price range, tags, availability).",
       access: "read",
-      inputSchema: z.toJSONSchema(listProductsInput),
+      inputSchema: z.toJSONSchema(listProductsInput, { io: "input" }),
       execute: async (raw) =>
         backend.listProducts(
           parseOrExplain(listProductsInput, raw, "list_products"),
@@ -103,7 +103,7 @@ export function createCommerceAgentTools(
       description:
         "Fetch one product in full detail (description, options, variants with prices, images, SEO) by id or handle. Returns null if not found.",
       access: "read",
-      inputSchema: z.toJSONSchema(getProductInput),
+      inputSchema: z.toJSONSchema(getProductInput, { io: "input" }),
       execute: async (raw) =>
         backend.getProduct(
           parseOrExplain(getProductInput, raw, "get_product").id,
@@ -118,7 +118,7 @@ export function createCommerceAgentTools(
       description:
         "List the store's product collections (or categories), with titles and storefront paths.",
       access: "read",
-      inputSchema: z.toJSONSchema(listCollectionsInput),
+      inputSchema: z.toJSONSchema(listCollectionsInput, { io: "input" }),
       execute: async (raw) => {
         parseOrExplain(listCollectionsInput, raw ?? {}, "list_collections");
         return backend.listCollections!();
@@ -133,7 +133,7 @@ export function createCommerceAgentTools(
       description:
         "Update a product's title, description, tags, visibility, or SEO fields. Only the fields provided are changed; `tags` replaces the whole list. Returns the updated product.",
       access: "write",
-      inputSchema: z.toJSONSchema(updateProductInput),
+      inputSchema: z.toJSONSchema(updateProductInput, { io: "input" }),
       execute: async (raw) => {
         const { id, ...changes } = parseOrExplain(
           updateProductInput,
@@ -152,7 +152,7 @@ export function createCommerceAgentTools(
       description:
         "List recent orders with status, totals, customer, and a line-item summary. Read-only.",
       access: "read",
-      inputSchema: z.toJSONSchema(listOrdersInput),
+      inputSchema: z.toJSONSchema(listOrdersInput, { io: "input" }),
       execute: async (raw) =>
         backend.listOrders!(
           parseOrExplain(listOrdersInput, raw ?? {}, "list_orders"),

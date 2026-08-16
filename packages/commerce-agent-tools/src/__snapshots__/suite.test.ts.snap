@@ -4,7 +4,6 @@ exports[`createCommerceAgentTools > publishes JSON Schema that matches the snaps
 {
   "get_product": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false,
     "properties": {
       "id": {
         "description": "Product id or storefront handle.",
@@ -18,13 +17,11 @@ exports[`createCommerceAgentTools > publishes JSON Schema that matches the snaps
   },
   "list_collections": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false,
     "properties": {},
     "type": "object",
   },
   "list_orders": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false,
     "properties": {
       "limit": {
         "default": 20,
@@ -43,15 +40,10 @@ exports[`createCommerceAgentTools > publishes JSON Schema that matches the snaps
         "type": "string",
       },
     },
-    "required": [
-      "limit",
-      "status",
-    ],
     "type": "object",
   },
   "list_products": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false,
     "properties": {
       "limit": {
         "default": 20,
@@ -78,14 +70,10 @@ exports[`createCommerceAgentTools > publishes JSON Schema that matches the snaps
         "type": "string",
       },
     },
-    "required": [
-      "limit",
-    ],
     "type": "object",
   },
   "update_product": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false,
     "properties": {
       "description": {
         "type": "string",
@@ -95,7 +83,6 @@ exports[`createCommerceAgentTools > publishes JSON Schema that matches the snaps
         "type": "string",
       },
       "seo": {
-        "additionalProperties": false,
         "properties": {
           "description": {
             "type": "string",
