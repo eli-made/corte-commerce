@@ -1,6 +1,6 @@
 {
   "name": "@corte-so/commerce-agent-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Provider-neutral agent tool suite for commerce: zod-authored specs published as JSON Schema, generated per provider backend.",
   "license": "MIT",
   "type": "module",
@@ -9,7 +9,9 @@
     "url": "https://github.com/eli-made/corte-commerce.git",
     "directory": "packages/commerce-agent-tools"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
