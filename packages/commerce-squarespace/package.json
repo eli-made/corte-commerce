@@ -1,0 +1,29 @@
+{
+  "name": "@corte-so/commerce-squarespace",
+  "version": "0.1.0",
+  "description": "Squarespace Commerce API provider (catalog-only) for the @corte-so/commerce-core contract.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eli-made/corte-commerce.git",
+    "directory": "packages/commerce-squarespace"
+  },
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@corte-so/commerce-core": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

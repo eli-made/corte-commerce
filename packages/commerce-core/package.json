@@ -1,0 +1,26 @@
+{
+  "name": "@corte-so/commerce-core",
+  "version": "0.1.0",
+  "description": "Provider-neutral commerce contract: domain types, the CommerceProvider interface, and capability flags.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eli-made/corte-commerce.git",
+    "directory": "packages/commerce-core"
+  },
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

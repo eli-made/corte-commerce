@@ -1,0 +1,55 @@
+# Release flow, powered by changesets (https://github.com/changesets/changesets):
+#
+#   1. Every PR that changes a package includes a changeset file
+#      (`npx changeset`) describing the bump + changelog entry. CI does not
+#      require one, but the release PR only picks up what's declared.
+#   2. On push to main, changesets/action opens (or updates) a "Version
+#      Packages" PR that applies the pending bumps and writes CHANGELOGs.
+#   3. Merging that PR re-runs this workflow; with no pending changesets left,
+#      the action runs `changeset publish`, which publishes exactly the
+#      versions not yet on npm. Idempotent by construction.
+#
+# Secret handling in a public repo:
+#   - NPM_TOKEN lives in the repo's Actions secrets: encrypted at rest, masked
+#     in logs.
+#   - Runs on `push` to main only — never on pull_request — so workflows from
+#     fork PRs can never see the secret.
+#   - The `production` environment lets you add required reviewers as a second
+#     gate before any publish runs (Settings → Environments).
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Create release PR or publish
+        uses: changesets/action@v1
+        with:
+          publish: npx changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

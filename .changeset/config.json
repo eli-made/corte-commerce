@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.5/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "eli-made/corte-commerce" }],
+  "commit": false,
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}
