@@ -1,0 +1,29 @@
+{
+  "name": "@corte-so/commerce-next",
+  "version": "0.1.0",
+  "description": "Next.js adapter for @corte-so/commerce-core providers: cart cookie + server-action helpers and a webhook revalidation route handler.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eli-made/corte-commerce.git",
+    "directory": "packages/commerce-next"
+  },
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@corte-so/commerce-core": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
