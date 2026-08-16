@@ -21,6 +21,7 @@ speaks GraphQL over `fetch` and returns neutral domain objects. Runs anywhere
 | `menus` | ✅ | `getMenu("header" \| "footer")` — see [Menus](#menus) |
 | `recommendations` | ✅ | `getProductRecommendations(productId)` via `relatedProducts` |
 | `webhooks` | ❌ | Nothing here classifies BigCommerce webhooks |
+| Agent tools | ✅ | All five verbs, over the management REST APIs — see [Agent tools](#agent-tools) |
 
 ## Configuration
 
@@ -193,6 +194,118 @@ Transport failures, non-2xx responses and GraphQL `errors` all become
 the request never reached BigCommerce). Both tokens are redacted from any
 message that would contain them.
 
+## Agent tools
+
+`@corte-so/commerce-bigcommerce/agent` implements
+[`CommerceAgentBackend`](../commerce-agent-tools) so an AI agent can read and
+edit the store through the same five tools every provider exposes:
+`list_products`, `get_product`, `list_collections`, `update_product` and
+`list_orders` — all five, none stubbed.
+
+This half does not use the Storefront GraphQL API at all. Catalog reads and
+writes go to BigCommerce's **v3 store management REST API** and orders to
+**v2**, which is the only version that has them.
+
+### Credentials
+
+```ts
+import {
+  createBigCommerceAdminClient,
+  createBigCommerceAgentBackend,
+} from "@corte-so/commerce-bigcommerce/agent";
+import { createCommerceAgentTools } from "@corte-so/commerce-agent-tools";
+
+const backend = createBigCommerceAgentBackend(
+  createBigCommerceAdminClient({
+    storeHash: "abc123",
+    accessToken: "…",                          // store-level API account token
+    storefrontUrl: "https://store.example.com", // optional; for externalUrl
+    currencyCode: "USD",                        // optional; labels catalog prices
+  }),
+);
+
+for (const tool of createCommerceAgentTools(backend)) {
+  register({
+    name: `${backend.providerId}_${tool.verb}`, // "bigcommerce_list_products"
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    handler: tool.execute,
+    readOnly: tool.access === "read",
+  });
+}
+```
+
+Or `bigCommerceAdminClientFromEnv()`:
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `BIGCOMMERCE_STORE_HASH` | yes | Store hash, e.g. `abc123` |
+| `BIGCOMMERCE_ACCESS_TOKEN` | yes | Store-level API account token, sent as `X-Auth-Token` |
+| `BIGCOMMERCE_STOREFRONT_URL` | no | Public storefront origin, for `externalUrl` |
+| `BIGCOMMERCE_CURRENCY_CODE` | no | Currency to label catalog prices with |
+| `BIGCOMMERCE_API_URL` | no | Override the management API host |
+
+`BIGCOMMERCE_ACCESS_TOKEN` is **not** the storefront token the catalog provider
+uses. Mint it at **Settings → API → API accounts** with *Products* read/write
+and *Orders* read scopes (the same variable the catalog provider reads for
+checkout URLs, which additionally wants *Carts*). It is server-only, must never
+reach a browser, and is redacted from every error this package throws.
+
+### Mapping notes
+
+- **Sorting.** Core's sort keys map onto `/v3/catalog/products?sort=&direction=`:
+  `created-at` → `date_created`, `price` → `price`, `best-selling` →
+  `total_sold`. Each has a natural base direction that `reverse` flips — price
+  ascends by default (cheapest first), `created-at` ascends (so `reverse: true`
+  reads newest first), `total_sold` descends (most sold first). `relevance` has
+  no v3 equivalent: no `sort` is sent, leaving BigCommerce's own ordering, which
+  with a `keyword` is its relevance ranking.
+- **Tags are `search_keywords`.** BigCommerce has no tag primitive; the
+  merchandising keyword list is the closest equivalent and is what
+  `list_products`/`get_product` read and `update_product` writes (comma-joined).
+  Note this is **a different field from `Product.tags` on the catalog provider**,
+  which reports SEO meta keywords because that is the only keyword field the
+  Storefront GraphQL API exposes. Tags set through the agent will not appear
+  there — including `corte-frontend-hidden`, which therefore does not hide a
+  product from storefront listings when set this way.
+- **Currency.** v3 catalog prices are bare numbers in the store's default
+  currency with no code attached, so `currencyCode` has to be configured; unset,
+  catalog money reports an empty `currencyCode` rather than a guess. Orders are
+  unaffected — v2 orders carry their own `currency_code`.
+- **Handles.** `get_product` takes a numeric product id directly. Anything else
+  is treated as a storefront slug, which v3 cannot filter on: it is searched as
+  free text (`?keyword=`, hyphens read as word breaks) and only an exact
+  `custom_url` slug match is returned, so a near miss reports `null` rather than
+  the wrong product. `update_product` requires the numeric id and rejects a
+  handle.
+- **Merchandise ids.** Variants are reported as `productEntityId:variantEntityId`
+  — the same composite id the catalog provider hands out, so an agent-surfaced
+  variant can go straight into `cart.addToCart`. A product with no variant rows
+  reports one synthetic `Default Title` variant addressed by bare product id.
+- **Availability.** A product is available when it is visible, not `disabled`,
+  and — where it tracks inventory — has stock at the level it tracks it
+  (`product` or `variant`). A variant is available when purchasing is not
+  disabled and its own stock allows it.
+- **Descriptions** are BigCommerce's HTML reduced to plain text, since the
+  result is read by a model in a chat context. `update_product` writes the
+  `description` string through unchanged, HTML and all.
+- **SEO** maps to `page_title` / `meta_description`; **visibility** to
+  `is_visible`. An update naming no fields performs no write and just reads the
+  product back. Every update re-reads the product in full, because the `PUT`
+  response omits variants, images and options.
+- **Collections** are v3 categories (one page of 50), with the real storefront
+  path from `custom_url` — not the catalog provider's `/search/<handle>` route.
+  No `productCount`: the categories endpoint does not report one.
+- **Orders.** `completed` and `canceled` filter server-side on `status_id` 10
+  and 5. `open` spans several statuses and v2 filters one at a time, so it is
+  resolved client-side over a wider page (3× the limit, capped at 250),
+  excluding Incomplete, Refunded, Cancelled, Declined and Completed. BigCommerce's
+  order id *is* the merchant-facing order number, so no separate `number` is
+  reported; `createdAt` is v2's RFC-2822 date converted to ISO-8601; `lineCount`
+  is `items_total`, a quantity total rather than a distinct-line count; and
+  `lineSummary` is omitted, since v2 needs a second request per order to read
+  line items.
+
 ## Tests
 
 ```bash
@@ -201,4 +314,13 @@ npx vitest run packages/commerce-bigcommerce     # unit tests, fake fetch, no cr
 COMMERCE_INTEGRATION=1 \
 BIGCOMMERCE_STORE_HASH=… BIGCOMMERCE_CUSTOMER_IMPERSONATION_TOKEN=… \
   npx vitest run packages/commerce-bigcommerce   # + live read-only checks
+```
+
+The agent-tools integration suite is separate and needs the management-API
+credential instead; it skips itself when that is absent, and only reads:
+
+```bash
+COMMERCE_INTEGRATION=1 \
+BIGCOMMERCE_STORE_HASH=… BIGCOMMERCE_ACCESS_TOKEN=… \
+  npx vitest run packages/commerce-bigcommerce
 ```

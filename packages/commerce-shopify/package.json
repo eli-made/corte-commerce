@@ -9,11 +9,17 @@
     "url": "https://github.com/eli-made/corte-commerce.git",
     "directory": "packages/commerce-shopify"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "default": "./dist/agent/index.js"
     }
   },
   "scripts": {
@@ -21,7 +27,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@corte-so/commerce-core": "^0.1.0"
+    "@corte-so/commerce-core": "^0.1.0",
+    "@corte-so/commerce-agent-tools": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

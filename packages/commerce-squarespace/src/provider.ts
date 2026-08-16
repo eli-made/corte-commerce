@@ -1,7 +1,4 @@
-import {
-  HIDDEN_PRODUCT_TAG,
-  requireConfig,
-} from "@corte-so/commerce-core";
+import { requireConfig } from "@corte-so/commerce-core";
 import type {
   Collection,
   CommerceCapabilities,
@@ -11,16 +8,17 @@ import type {
   Product,
 } from "@corte-so/commerce-core";
 import {
-  API_KEY_ENV,
-  MAX_PRODUCT_PAGES,
-  PRODUCTS_PATH,
-  PROVIDER_ID,
-  STORE_DOMAIN_ENV,
-} from "./constants.js";
+  getProductById,
+  listVisibleProducts,
+  normalizeStoreDomain,
+  tagGroups,
+} from "./catalog.js";
+import { API_KEY_ENV, PROVIDER_ID, STORE_DOMAIN_ENV } from "./constants.js";
+import { ambientEnv } from "./env.js";
 import { createSquarespaceClient, type FetchLike } from "./fetch.js";
 import { mapProduct, tagToCollection } from "./mappers.js";
 import { defaultSort, sortProducts, sorting } from "./sorting.js";
-import type { SquarespaceProduct, SquarespaceProductsResponse } from "./types.js";
+import type { SquarespaceProduct } from "./types.js";
 
 export type SquarespaceProviderConfig = {
   /** Squarespace API key with the "Products (read)" scope. */
@@ -48,21 +46,6 @@ const capabilities: CommerceCapabilities = {
   webhooks: false,
 };
 
-function normalizeStoreDomain(storeDomain?: string): string | undefined {
-  const trimmed = storeDomain?.trim();
-  if (!trimmed) return undefined;
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    return new URL(withScheme).href.replace(/\/+$/, "");
-  } catch {
-    return undefined;
-  }
-}
-
-function isHiddenTag(tag: string): boolean {
-  return tag.toLowerCase().startsWith("hidden");
-}
-
 export function createSquarespaceProvider(
   config: SquarespaceProviderConfig,
 ): CommerceProvider {
@@ -72,56 +55,11 @@ export function createSquarespaceProvider(
   });
   const storeOrigin = normalizeStoreDomain(config.storeDomain);
 
-  /**
-   * Walk the catalog, following `pagination.nextPageCursor` until the API says
-   * there is no next page. Stops after MAX_PRODUCT_PAGES pages, or if the API
-   * hands back a cursor it already gave us, so a misbehaving cursor cannot
-   * spin forever.
-   */
-  const listAllProducts = async (): Promise<SquarespaceProduct[]> => {
-    const products: SquarespaceProduct[] = [];
-    const seenCursors = new Set<string>();
-    let cursor: string | undefined;
-
-    for (let page = 0; page < MAX_PRODUCT_PAGES; page++) {
-      const data = await client.get<SquarespaceProductsResponse>(
-        PRODUCTS_PATH,
-        cursor ? { cursor } : undefined,
-      );
-      products.push(...(data.products ?? []));
-
-      const pagination = data.pagination;
-      if (pagination?.hasNextPage === false) break;
-      const next = pagination?.nextPageCursor?.trim();
-      if (!next || seenCursors.has(next)) break;
-      seenCursors.add(next);
-      cursor = next;
-    }
-
-    return products;
-  };
-
-  /** The catalog as a storefront should see it: hidden products removed. */
-  const listVisibleProducts = async (): Promise<SquarespaceProduct[]> => {
-    const products = await listAllProducts();
-    return products.filter(
-      (product) => !(product.tags ?? []).includes(HIDDEN_PRODUCT_TAG),
-    );
-  };
-
   const listCollections = async (): Promise<Collection[]> => {
-    const products = await listVisibleProducts();
-    const collections = new Map<string, Collection>();
-
-    for (const product of products) {
-      const updatedAt = product.modifiedOn ?? product.createdOn ?? "";
-      for (const tag of product.tags ?? []) {
-        if (isHiddenTag(tag) || collections.has(tag)) continue;
-        collections.set(tag, tagToCollection(tag, updatedAt));
-      }
-    }
-
-    return [...collections.values()];
+    const products = await listVisibleProducts(client);
+    return tagGroups(products).map((group) =>
+      tagToCollection(group.tag, group.updatedAt),
+    );
   };
 
   const finish = (
@@ -139,17 +77,12 @@ export function createSquarespaceProvider(
     defaultSort,
 
     async getProduct(handle: string): Promise<Product | null> {
-      const id = handle?.trim();
-      if (!id) return null;
-      const data = await client.getOrNull<SquarespaceProductsResponse>(
-        `${PRODUCTS_PATH}/${encodeURIComponent(id)}`,
-      );
-      const product = data?.products?.[0];
+      const product = await getProductById(client, handle);
       return product ? mapProduct(product, storeOrigin) : null;
     },
 
     async getProducts(options: GetProductsOptions = {}): Promise<Product[]> {
-      let products = await listVisibleProducts();
+      let products = await listVisibleProducts(client);
 
       const query = options.query?.trim().toLowerCase();
       if (query) {
@@ -173,22 +106,13 @@ export function createSquarespaceProvider(
       sortKey,
       reverse,
     }: GetCollectionProductsOptions): Promise<Product[]> {
-      const products = await listVisibleProducts();
+      const products = await listVisibleProducts(client);
       const tagged = products.filter((product) =>
         (product.tags ?? []).includes(collection),
       );
       return finish(tagged, { sortKey, reverse });
     },
   };
-}
-
-/** `process.env` where there is a process, `{}` where there isn't (Workers,
- * browsers). Read lazily — never at module scope. */
-function ambientEnv(): Record<string, string | undefined> {
-  const proc = (
-    globalThis as { process?: { env?: Record<string, string | undefined> } }
-  ).process;
-  return proc?.env ?? {};
 }
 
 /**

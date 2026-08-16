@@ -1,0 +1,131 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createCommerceAgentTools > publishes JSON Schema that matches the snapshot (agent-facing API) 1`] = `
+{
+  "get_product": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "description": "Product id or storefront handle.",
+        "type": "string",
+      },
+    },
+    "required": [
+      "id",
+    ],
+    "type": "object",
+  },
+  "list_collections": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object",
+  },
+  "list_orders": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "limit": {
+        "default": 20,
+        "maximum": 50,
+        "minimum": 1,
+        "type": "integer",
+      },
+      "status": {
+        "default": "any",
+        "enum": [
+          "any",
+          "open",
+          "completed",
+          "canceled",
+        ],
+        "type": "string",
+      },
+    },
+    "required": [
+      "limit",
+      "status",
+    ],
+    "type": "object",
+  },
+  "list_products": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "limit": {
+        "default": 20,
+        "maximum": 50,
+        "minimum": 1,
+        "type": "integer",
+      },
+      "query": {
+        "description": "Free-text product search.",
+        "type": "string",
+      },
+      "reverse": {
+        "description": "Reverse the sort order.",
+        "type": "boolean",
+      },
+      "sortKey": {
+        "description": "Provider-neutral sort key.",
+        "enum": [
+          "relevance",
+          "best-selling",
+          "created-at",
+          "price",
+        ],
+        "type": "string",
+      },
+    },
+    "required": [
+      "limit",
+    ],
+    "type": "object",
+  },
+  "update_product": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "description": {
+        "type": "string",
+      },
+      "id": {
+        "description": "Product id.",
+        "type": "string",
+      },
+      "seo": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+          },
+          "title": {
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "tags": {
+        "description": "Replaces the full tag list — include existing tags to keep them.",
+        "items": {
+          "type": "string",
+        },
+        "type": "array",
+      },
+      "title": {
+        "minLength": 1,
+        "type": "string",
+      },
+      "visible": {
+        "description": "Whether the product is visible on the storefront.",
+        "type": "boolean",
+      },
+    },
+    "required": [
+      "id",
+    ],
+    "type": "object",
+  },
+}
+`;

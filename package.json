@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @corte-so/commerce-core && npm run build --workspaces --if-present",
+    "build": "npm run build -w @corte-so/commerce-core -w @corte-so/commerce-agent-tools && npm run build --workspaces --if-present",
     "test": "vitest run",
     "test:integration": "COMMERCE_INTEGRATION=1 vitest run",
     "typecheck": "npm run typecheck --workspaces --if-present",
