@@ -1,6 +1,6 @@
 {
   "name": "@corte-so/commerce-squarespace",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Squarespace Commerce API provider (catalog-only) for the @corte-so/commerce-core contract.",
   "license": "MIT",
   "type": "module",

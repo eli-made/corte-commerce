@@ -1,6 +1,6 @@
 {
   "name": "@corte-so/commerce-shopify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shopify Storefront API provider for the @corte-so/commerce-core contract.",
   "license": "MIT",
   "type": "module",

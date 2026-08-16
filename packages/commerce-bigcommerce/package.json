@@ -1,6 +1,6 @@
 {
   "name": "@corte-so/commerce-bigcommerce",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "BigCommerce Storefront GraphQL provider for the @corte-so/commerce-core contract.",
   "license": "MIT",
   "type": "module",
